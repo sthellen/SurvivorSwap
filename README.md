@@ -11,11 +11,8 @@ To target, name a desired survivor, and then a target's survivor name after, i.e
 
 # Known issues
 
-*Using L4D2 survivors in L4D1 campaigns may have mismatched view models, portraits, and names, due to limitations within the game itself, but third person models and voices will match. If anyone has any input on this, it would be great to know. L4D1 survivors in L4D2 campaigns (and campaigns using survivor set 2) should be mostly functional.
+*Using L4D2 survivors in L4D1 campaigns may have mismatched view models, portraits, and names, due to limitations within the game itself, but third person models and voices will match. L4D1 survivors in L4D2 campaigns (and campaigns using survivor set 2) should be mostly functional.
 
 Having a L4D1 survivor on your team during The Passing may cause players to softlock as the map script will confuse them for the L4D1 bots on the balcony.
 
 As with any VScript, this will only load on your own local instance or dedicated server.
-
-MIT No Attribution (MIT-0)
-Copyright © 2026 St. Hellen
