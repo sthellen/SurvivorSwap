@@ -1,0 +1,9 @@
+"AddonInfo"
+{
+  addonversion        "2026.03.10_2201"
+  addontitle          "Survivor Swap"
+  addonauthor         "Hellen"
+  addonDescription    "Play as any survivor within any campaign using simple chat commands (local or self dedicated servers only)."
+
+  addonContent_Script 1
+}
