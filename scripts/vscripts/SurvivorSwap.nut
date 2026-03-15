@@ -1,6 +1,6 @@
 // =========================================================================
 // Survivor Swap
-// Version: 2026.03.10_2201
+// Version: 2026.03.15_1409
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -111,10 +111,10 @@
   {
     SayTarget = Survivors[SayTarget];
     local SurvSet = Director.GetSurvivorSet();
-    if (SurvSet == 2)
-      SayTarget = GetPlayerFromCharacter(SayTarget.Index[0]);
-    else
+    if (SurvSet == 1)
       SayTarget = GetPlayerFromCharacter(SayTarget.Index[1]);
+    else
+      SayTarget = GetPlayerFromCharacter(SayTarget.Index[0]);
 
     ID[0] <- SayTarget.GetNetworkIDString();
     if (!IsBot())
