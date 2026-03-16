@@ -1,6 +1,6 @@
 // =========================================================================
 // Survivor Swap
-// Version: 2026.03.15_2029
+// Version: 2026.03.15_2118
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -43,15 +43,18 @@
     FrancisLight = { Model = "models/survivors/survivor_biker_light.mdl",     Name = "FrancisLight" }
     ZoeyLight    = { Model = "models/survivors/survivor_teenangst_light.mdl", Name = "ZoeyLight"    }
   }
+}
+
+SurvSwap.Func <-
+{
+  Survivors = SurvSwap.Survivors
+  LightModels = SurvSwap.LightModels
 
   // Empty table to temporarily store a single network ID and check for bots.
   // This is for edge cases where bots are considered human.
   // Used in isBot() func.
   ID = {}
-}
 
-SurvSwap.Func <-
-{
   OnGameEvent_player_first_spawn = function(params)
   {
     local Player = GetPlayerFromUserID(params.userid);
@@ -78,7 +81,7 @@ SurvSwap.Func <-
   {
     local Player = GetPlayerFromUserID(params.userid);
     local Text = params.text.tolower();
-    SurvSwap.ID[0] <- Player.GetNetworkIDString();
+    ID[0] <- Player.GetNetworkIDString();
 
     if (Player == null
     || !Player.IsSurvivor()
@@ -96,7 +99,6 @@ SurvSwap.Func <-
       if (Text[1] != null)
         SayTarget = Text[1];
 
-    local Survivors = SurvSwap.Survivors;
     if (Character in Survivors)
     {
       if (TextLen < 2)
@@ -113,14 +115,14 @@ SurvSwap.Func <-
 
   FindSayTarget = function(SayTarget, Issuer)
   {
-    SayTarget = SurvSwap.Survivors[SayTarget];
+    SayTarget = Survivors[SayTarget];
     local SurvSet = Director.GetSurvivorSet();
     if (SurvSet == 1)
       SayTarget = GetPlayerFromCharacter(SayTarget.Index[1]);
     else
       SayTarget = GetPlayerFromCharacter(SayTarget.Index[0]);
 
-    SurvSwap.ID[0] = SayTarget.GetNetworkIDString();
+    ID[0] <- SayTarget.GetNetworkIDString();
     if (!IsBot())
       {
         ClientPrint(Issuer, 5, "Only bots can be targets!");
@@ -132,7 +134,7 @@ SurvSwap.Func <-
 
   SwapSurvivor = function(Player, Character)
   {
-    Character = SurvSwap.Survivors[Character];
+    Character = Survivors[Character];
     Player.SetModel(Character.Model);
 
     local SurvSet = Director.GetSurvivorSet();
@@ -151,15 +153,14 @@ SurvSwap.Func <-
 
   SetSurvivorContext = function(Player, CurrentModel)
   {
-    foreach (Name, Value in SurvSwap.Survivors)
+    foreach (Name, Value in Survivors)
     {
       if (Value.Model == CurrentModel)
       {
         Player.SetContext("who", Value.Context, -1);
         local PlayerName = Player.GetPlayerName();
-        if (PlayerName == Value.Name)
-          return;
-        SurvSwap.ConLog(PlayerName + "'s context was automatically set to " + Value.Name + "!");
+        if (PlayerName != Value.Name)
+          SurvSwap.ConLog(PlayerName + "'s context was automatically set to " + Value.Name + "!");
         return;
       }
     }
@@ -167,7 +168,7 @@ SurvSwap.Func <-
 
   IsBot = function()
   {
-    local NetID = SurvSwap.ID[0];
+    local NetID = ID[0];
     if (NetID == "BOT")
       return true;
     return false;
@@ -175,7 +176,7 @@ SurvSwap.Func <-
 
   CheckPrecache = function()
   {
-    local ModelSet = [SurvSwap.Survivors, SurvSwap.LightModels];
+    local ModelSet = [Survivors, LightModels];
     SurvSwap.ConLog("Checking for missing survivor models in precache...");
     for (local i = 0; i < ModelSet.len(); i++)
     {
