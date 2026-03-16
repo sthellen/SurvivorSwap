@@ -1,6 +1,6 @@
 // =========================================================================
 // Survivor Swap
-// Version: 2026.03.15_1409
+// Version: 2026.03.15_2029
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -48,7 +48,10 @@
   // This is for edge cases where bots are considered human.
   // Used in isBot() func.
   ID = {}
+}
 
+SurvSwap.Func <-
+{
   OnGameEvent_player_first_spawn = function(params)
   {
     local Player = GetPlayerFromUserID(params.userid);
@@ -75,7 +78,7 @@
   {
     local Player = GetPlayerFromUserID(params.userid);
     local Text = params.text.tolower();
-    ID[0] <- Player.GetNetworkIDString();
+    SurvSwap.ID[0] <- Player.GetNetworkIDString();
 
     if (Player == null
     || !Player.IsSurvivor()
@@ -93,6 +96,7 @@
       if (Text[1] != null)
         SayTarget = Text[1];
 
+    local Survivors = SurvSwap.Survivors;
     if (Character in Survivors)
     {
       if (TextLen < 2)
@@ -109,18 +113,18 @@
 
   FindSayTarget = function(SayTarget, Issuer)
   {
-    SayTarget = Survivors[SayTarget];
+    SayTarget = SurvSwap.Survivors[SayTarget];
     local SurvSet = Director.GetSurvivorSet();
     if (SurvSet == 1)
       SayTarget = GetPlayerFromCharacter(SayTarget.Index[1]);
     else
       SayTarget = GetPlayerFromCharacter(SayTarget.Index[0]);
 
-    ID[0] <- SayTarget.GetNetworkIDString();
+    SurvSwap.ID[0] = SayTarget.GetNetworkIDString();
     if (!IsBot())
       {
         ClientPrint(Issuer, 5, "Only bots can be targets!");
-        ConLog("Swap failed: Only bots can be targets!");
+        SurvSwap.ConLog("Swap failed: Only bots can be targets!");
         return SayTarget = null;
       }
     return SayTarget;
@@ -128,7 +132,7 @@
 
   SwapSurvivor = function(Player, Character)
   {
-    Character = Survivors[Character];
+    Character = SurvSwap.Survivors[Character];
     Player.SetModel(Character.Model);
 
     local SurvSet = Director.GetSurvivorSet();
@@ -139,7 +143,7 @@
 
     Player.SetContext("who", Character.Context, -1);
     local PlayerName = Player.GetPlayerName();
-    ConLog(PlayerName + "'s character was swapped to " + Character.Name + "!");
+    SurvSwap.ConLog(PlayerName + "'s character was swapped to " + Character.Name + "!");
 
     if (IsBot())
       SetFakeClientConVarValue(Player, "name", Character.Name);
@@ -147,13 +151,15 @@
 
   SetSurvivorContext = function(Player, CurrentModel)
   {
-    foreach (Name, Value in Survivors)
+    foreach (Name, Value in SurvSwap.Survivors)
     {
       if (Value.Model == CurrentModel)
       {
         Player.SetContext("who", Value.Context, -1);
         local PlayerName = Player.GetPlayerName();
-        ConLog(PlayerName + "'s context was automatically set to " + Value.Name + "!");
+        if (PlayerName == Value.Name)
+          return;
+        SurvSwap.ConLog(PlayerName + "'s context was automatically set to " + Value.Name + "!");
         return;
       }
     }
@@ -161,7 +167,7 @@
 
   IsBot = function()
   {
-    local NetID = ID[0];
+    local NetID = SurvSwap.ID[0];
     if (NetID == "BOT")
       return true;
     return false;
@@ -169,15 +175,15 @@
 
   CheckPrecache = function()
   {
-    local ModelSet = [Survivors, LightModels];
-    ConLog("Checking for missing survivor models in precache...");
+    local ModelSet = [SurvSwap.Survivors, SurvSwap.LightModels];
+    SurvSwap.ConLog("Checking for missing survivor models in precache...");
     for (local i = 0; i < ModelSet.len(); i++)
     {
       foreach (Name, Value in ModelSet[i])
       {
         if (!IsModelPrecached(Value.Model))
         {
-          ConLog(Value.Name + " is not precached! Caching...");
+          SurvSwap.ConLog(Value.Name + " is not precached! Caching...");
           PrecacheModel(Value.Model);
         }
       }
@@ -186,11 +192,11 @@
 
   Initialized = function()
   {
-    ConLog("Survivor Swap has been initialized.");
+    SurvSwap.ConLog("Survivor Swap has been initialized.");
   }
 }
 
-::SurvSwap.CheckPrecache();
-::SurvSwap.Initialized();
+SurvSwap.Func.CheckPrecache();
+SurvSwap.Func.Initialized();
 
-__CollectEventCallbacks(::SurvSwap, "OnGameEvent_", "GameEventCallbacks", RegisterScriptGameEventListener);
+__CollectEventCallbacks(SurvSwap.Func, "OnGameEvent_", "GameEventCallbacks", RegisterScriptGameEventListener);
