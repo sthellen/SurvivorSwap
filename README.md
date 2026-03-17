@@ -4,15 +4,11 @@ Allows you to play as any survivor within any campaign and swap survivor bots us
 
 Lightweight, no dependencies required.
 
+As with any VScript, this will only load on your own local instance or dedicated server.
+
+[View this mod on the Steam Workshop.](https://steamcommunity.com/sharedfiles/filedetails/?id=3679528336)
+
 # Directions
 
 Open chat and enter your desired survivor's name lead by an exclamation point, i.e. "!bill".
 To target, name a desired survivor, and then a target's survivor name after, i.e. "!bill coach" to have Bill replace Coach.
-
-# Known issues
-
-*Using L4D2 survivors in L4D1 campaigns may have mismatched view models, portraits, and names, due to limitations within the game itself, but third person models and voices will match. L4D1 survivors in L4D2 campaigns (and campaigns using survivor set 2) should be mostly functional.
-
-Having a L4D1 survivor on your team during The Passing may cause players to softlock as the map script will confuse them for the L4D1 bots on the balcony.
-
-As with any VScript, this will only load on your own local instance or dedicated server.
