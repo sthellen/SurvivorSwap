@@ -53,15 +53,14 @@ SurvSwap.Func <-
   // Empty table to temporarily store a single network ID and check for bots.
   // This is for edge cases where bots are considered human.
   // Used in isBot() func.
-  ID = {}
+  // TODO: Create an network ID array that stores the ID of every player
+  PlayerNetID = {}
 
   OnGameEvent_player_first_spawn = function(params)
   {
     local Player = GetPlayerFromUserID(params.userid);
     local CurrentModel = Player.GetModelName();
-
-    if (Player == null || CurrentModel == null)
-      return;
+    if (Player == null || CurrentModel == null) return;
 
     SetSurvivorContext(Player, CurrentModel);
   }
@@ -70,9 +69,7 @@ SurvSwap.Func <-
   {
     local Player = GetPlayerFromUserID(params.player);
     local CurrentModel = Player.GetModelName();
-
-    if (Player == null || CurrentModel == null)
-      return;
+    if (Player == null || CurrentModel == null) return;
 
     SetSurvivorContext(Player, CurrentModel);
   }
@@ -80,55 +77,42 @@ SurvSwap.Func <-
   OnGameEvent_player_say = function(params)
   {
     local Player = GetPlayerFromUserID(params.userid);
-    local Text = params.text.tolower();
-    ID[0] <- Player.GetNetworkIDString();
+    local UserInput = params.text.tolower();
+    PlayerNetID[0] <- Player.GetNetworkIDString();
+    if (Player == null || !Player.IsSurvivor() || IsBot() || UserInput[0] != '!') return;
 
-    if (Player == null
-    || !Player.IsSurvivor()
-    || IsBot()
-    || Text[0] != '!')
-      return;
-
-    Text = strip(Text.slice(1));
-    Text = split(Text, " ");
-    local TextLen = Text.len();
-    local Character = Text[0];
+    Token = strip(UserInput.slice(1)).split(UserInput, " ");
+    local Character = Token[0];
     local SayTarget = null;
 
-    if (TextLen == 2)
-      if (Text[1] != null)
-        SayTarget = Text[1];
+    if (Token.len() == 2 && Token[1] != null)
+    {
+      SayTarget = Token[1];
+    }
 
+    if (SayTarget != null && SayTarget in Survivors)
+    {
+      SayTarget = FindSayTarget(SayTarget, Player);
+      SwapSurvivor(SayTarget, Character);
+    }
     if (Character in Survivors)
     {
-      if (TextLen < 2)
-        SwapSurvivor(Player, Character);
-
-      if ( (SayTarget in Survivors) && TextLen == 2 )
-      {
-        SayTarget = FindSayTarget(SayTarget, Player);
-        if (SayTarget != null)
-          SwapSurvivor(SayTarget, Character);
-      }
+      SwapSurvivor(Player, Character);
     }
   }
 
   FindSayTarget = function(SayTarget, Issuer)
   {
+    PlayerNetID[0] <- SayTarget.GetNetworkIDString();
+    if (!IsBot())
+    {
+      ClientPrint(Issuer, 5, "Only bots can be targets!");
+      SurvSwap.ConLog("Swap failed: Only bots can be targets!");
+      return;
+    }
     SayTarget = Survivors[SayTarget];
     local SurvSet = Director.GetSurvivorSet();
-    if (SurvSet == 1)
-      SayTarget = GetPlayerFromCharacter(SayTarget.Index[1]);
-    else
-      SayTarget = GetPlayerFromCharacter(SayTarget.Index[0]);
-
-    ID[0] <- SayTarget.GetNetworkIDString();
-    if (!IsBot())
-      {
-        ClientPrint(Issuer, 5, "Only bots can be targets!");
-        SurvSwap.ConLog("Swap failed: Only bots can be targets!");
-        return SayTarget = null;
-      }
+    SayTarget = GetPlayerFromCharacter(SayTarget.Index[SurvSet == 1 ? 1 : 0]);
     return SayTarget;
   }
 
@@ -138,21 +122,21 @@ SurvSwap.Func <-
     Player.SetModel(Character.Model);
 
     local SurvSet = Director.GetSurvivorSet();
-    if (SurvSet == 1)
-      NetProps.SetPropIntArray(Player, "m_survivorCharacter", Character.Index[1], 0);
-    else
-      NetProps.SetPropIntArray(Player, "m_survivorCharacter", Character.Index[0], 0);
+    SayTarget = GetPlayerFromCharacter(SayTarget.Index[SurvSet == 1 ? 1 : 0]);
 
     Player.SetContext("who", Character.Context, -1);
     local PlayerName = Player.GetPlayerName();
     SurvSwap.ConLog(PlayerName + "'s character was swapped to " + Character.Name + "!");
 
     if (IsBot())
+    {
       SetFakeClientConVarValue(Player, "name", Character.Name);
+    }
   }
 
   SetSurvivorContext = function(Player, CurrentModel)
   {
+    // TODO: Convert to a map
     foreach (Name, Value in Survivors)
     {
       if (Value.Model == CurrentModel)
@@ -168,16 +152,14 @@ SurvSwap.Func <-
 
   IsBot = function()
   {
-    local NetID = ID[0];
-    if (NetID == "BOT")
-      return true;
-    return false;
+    PlayerNetID[0] == "BOT" ?  return NetID : return null;
   }
 
   CheckPrecache = function()
   {
     local ModelSet = [Survivors, LightModels];
     SurvSwap.ConLog("Checking for missing survivor models in precache...");
+    // TODO: Attempt to convert into a map
     for (local i = 0; i < ModelSet.len(); i++)
     {
       foreach (Name, Value in ModelSet[i])
@@ -189,6 +171,7 @@ SurvSwap.Func <-
         }
       }
     }
+    Initialized();
   }
 
   Initialized = function()
@@ -198,6 +181,5 @@ SurvSwap.Func <-
 }
 
 SurvSwap.Func.CheckPrecache();
-SurvSwap.Func.Initialized();
 
 __CollectEventCallbacks(SurvSwap.Func, "OnGameEvent_", "GameEventCallbacks", RegisterScriptGameEventListener);
