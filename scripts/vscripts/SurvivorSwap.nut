@@ -1,88 +1,93 @@
 // =========================================================================
 // Survivor Swap
-// Version: 2026.03.15_2118
+// Version: 2026.03.20_2312
+// Author: St. Hellen
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this
-// software and associated documentation files (the "Software"), to deal in the Software
-// without restriction, including without limitation the rights to use, copy, modify,
-// merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
-// permit persons to whom the Software is furnished to do so.
+// This is free and unencumbered software released into the public domain.
 //
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-// PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE./
+// Anyone is free to copy, modify, publish, use, compile, sell, or
+// distribute this software, either in source code form or as a compiled
+// binary, for any purpose, commercial or non-commercial, and by any
+// means.
 //
-// MIT No Attribution (MIT-0)
-// Copyright © 2026 St. Hellen
+// In jurisdictions that recognize copyright laws, the author or authors
+// of this software dedicate any and all copyright interest in the
+// software to the public domain. We make this dedication for the benefit
+// of the public at large and to the detriment of our heirs and
+// successors. We intend this dedication to be an overt act of
+// relinquishment in perpetuity of all present and future rights to this
+// software under copyright law.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+// IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+// OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+// ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+// OTHER DEALINGS IN THE SOFTWARE.
+//
+// For more information, please refer to <https://unlicense.org>
 // =========================================================================
 
-::SurvSwap <-
-{
-  ConLog = function(text)
-  {
-    printl("[SURVSWAP][INFO] " + text);
-  }
-
-  Survivors =
-  {
-    nick      =    { Model = "models/survivors/survivor_gambler.mdl",   Index = [ 0, 0 ], Name = "Nick",     Context = "Gambler"  }
-    rochelle  =    { Model = "models/survivors/survivor_producer.mdl",  Index = [ 1, 1 ], Name = "Rochelle", Context = "Producer" }
-    coach     =    { Model = "models/survivors/survivor_coach.mdl",     Index = [ 2, 2 ], Name = "Coach",    Context = "Coach"    }
-    ellis     =    { Model = "models/survivors/survivor_mechanic.mdl",  Index = [ 3, 3 ], Name = "Ellis",    Context = "Mechanic" }
-    bill      =    { Model = "models/survivors/survivor_namvet.mdl",    Index = [ 4, 0 ], Name = "Bill",     Context = "NamVet"   }
-    zoey      =    { Model = "models/survivors/survivor_teenangst.mdl", Index = [ 5, 1 ], Name = "Zoey",     Context = "TeenGirl" }
-    francis   =    { Model = "models/survivors/survivor_biker.mdl",     Index = [ 6, 3 ], Name = "Francis",  Context = "Biker"    }
-    louis     =    { Model = "models/survivors/survivor_manager.mdl",   Index = [ 7, 2 ], Name = "Louis",    Context = "Manager"  }
-  }
-
-  LightModels =
-  {
-    FrancisLight = { Model = "models/survivors/survivor_biker_light.mdl",     Name = "FrancisLight" }
-    ZoeyLight    = { Model = "models/survivors/survivor_teenangst_light.mdl", Name = "ZoeyLight"    }
-  }
-}
+IncludeScript("SurvSwapDB");
 
 SurvSwap.Func <-
 {
-  Survivors = SurvSwap.Survivors
-  LightModels = SurvSwap.LightModels
+  Survivors = ::SurvSwap.Survivors
+  LightModels = ::SurvSwap.LightModels
 
-  // Empty table to temporarily store a single network ID and check for bots.
+  // Empty table to temporarily store every player's network ID.
   // This is for edge cases where bots are considered human.
   // Used in isBot() func.
-  // TODO: Create an network ID array that stores the ID of every player
-  PlayerNetID = {}
+  PlayerCache = {}
 
+  OnGameEvent_player_connect = function(params)
+  {
+    if (params.userid == null) return;
+
+    local UserID = params.userid;
+    local NetID = params.networkid;
+
+    if (Player in PlayerCache)
+    {
+      delete PlayerCache[UserID];
+    }
+
+    PlayerCache[UserID] <- {};
+    PlayerCache[UserID]["NetID"] <- NetID;
+  }
+  
   OnGameEvent_player_first_spawn = function(params)
   {
+    if (params.userid == null) return;
+
     local Player = GetPlayerFromUserID(params.userid);
     local CurrentModel = Player.GetModelName();
-    if (Player == null || CurrentModel == null) return;
 
     SetSurvivorContext(Player, CurrentModel);
   }
 
   OnGameEvent_bot_player_replace = function(params)
   {
+    if (params.player == null) return;
+
     local Player = GetPlayerFromUserID(params.player);
     local CurrentModel = Player.GetModelName();
-    if (Player == null || CurrentModel == null) return;
 
     SetSurvivorContext(Player, CurrentModel);
   }
 
   OnGameEvent_player_say = function(params)
   {
+    local UserID = params.userid;
     local Player = GetPlayerFromUserID(params.userid);
     local UserInput = params.text.tolower();
-    PlayerNetID[0] <- Player.GetNetworkIDString();
-    if (Player == null || !Player.IsSurvivor() || IsBot() || UserInput[0] != '!') return;
+    if (Player == null || !Player.IsSurvivor() || IsBot(UserID) || UserInput[0] != '!') return;
 
-    Token = strip(UserInput.slice(1)).split(UserInput, " ");
+    local Token = split(strip(UserInput.slice(1)), " ");
     local Character = Token[0];
+    if ( !(Character in Survivors) ) return;
+
     local SayTarget = null;
 
     if (Token.len() == 2 && Token[1] != null)
@@ -92,43 +97,49 @@ SurvSwap.Func <-
 
     if (SayTarget != null && SayTarget in Survivors)
     {
-      SayTarget = FindSayTarget(SayTarget, Player);
+      SayTarget = FindSayTarget(SayTarget, Player, Character);
       SwapSurvivor(SayTarget, Character);
     }
-    if (Character in Survivors)
+    else
     {
       SwapSurvivor(Player, Character);
     }
   }
 
-  FindSayTarget = function(SayTarget, Issuer)
+  FindSayTarget = function(SayTarget, Issuer, Character)
   {
-    PlayerNetID[0] <- SayTarget.GetNetworkIDString();
-    if (!IsBot())
+    SayTarget = Survivors[SayTarget];
+    const SurvSet = Director.GetSurvivorSet();
+    SayTarget = GetPlayerFromCharacter(SayTarget.Index[SurvSet == 1 ? 1 : 0]);
+    local UserID = SayTarget.GetPlayerUserId();
+    if (!IsBot(UserID))
     {
+      Character = Survivors[Character];
+      const InfoString = "Enter just \"!" + Character.Name.tolower() + "\" to change yourself.";
       ClientPrint(Issuer, 5, "Only bots can be targets!");
-      SurvSwap.ConLog("Swap failed: Only bots can be targets!");
+      ClientPrint(Issuer, 5, InfoString);
+      ::SurvSwap.ConLog("Swap failed: Only bots can be targets! " + InfoString);
       return;
     }
-    SayTarget = Survivors[SayTarget];
-    local SurvSet = Director.GetSurvivorSet();
-    SayTarget = GetPlayerFromCharacter(SayTarget.Index[SurvSet == 1 ? 1 : 0]);
     return SayTarget;
   }
 
   SwapSurvivor = function(Player, Character)
   {
+    if (Player == null || Character == null) return;
+
     Character = Survivors[Character];
     Player.SetModel(Character.Model);
 
-    local SurvSet = Director.GetSurvivorSet();
-    SayTarget = GetPlayerFromCharacter(SayTarget.Index[SurvSet == 1 ? 1 : 0]);
+    const SurvSet = Director.GetSurvivorSet();
+    NetProps.SetPropIntArray(Player, "m_survivorCharacter", Character.Index[SurvSet == 1 ? 1 : 0], 0);
 
     Player.SetContext("who", Character.Context, -1);
     local PlayerName = Player.GetPlayerName();
     SurvSwap.ConLog(PlayerName + "'s character was swapped to " + Character.Name + "!");
 
-    if (IsBot())
+    local UserID = Player.GetPlayerUserId();
+    if (IsBot(UserID))
     {
       SetFakeClientConVarValue(Player, "name", Character.Name);
     }
@@ -136,47 +147,49 @@ SurvSwap.Func <-
 
   SetSurvivorContext = function(Player, CurrentModel)
   {
-    // TODO: Convert to a map
-    foreach (Name, Value in Survivors)
+    // ? Convert to a map
+    foreach (Name in Survivors)
     {
-      if (Value.Model == CurrentModel)
+      if (Name.Model == CurrentModel)
       {
-        Player.SetContext("who", Value.Context, -1);
+        Player.SetContext("who", Name.Context, -1);
         local PlayerName = Player.GetPlayerName();
-        if (PlayerName != Value.Name)
-          SurvSwap.ConLog(PlayerName + "'s context was automatically set to " + Value.Name + "!");
+        if (PlayerName != Name.Name)
+        {
+          ::SurvSwap.ConLog(PlayerName + "'s context was automatically set to " + Name.Name + "!");
+        }
         return;
       }
     }
   }
 
-  IsBot = function()
+  IsBot = function(UserID)
   {
-    PlayerNetID[0] == "BOT" ?  return NetID : return null;
+    return PlayerCache[UserID]["NetID"] == "BOT" ? true : false;
   }
 
   CheckPrecache = function()
   {
-    local ModelSet = [Survivors, LightModels];
-    SurvSwap.ConLog("Checking for missing survivor models in precache...");
-    // TODO: Attempt to convert into a map
+    const ModelSet = [Survivors, LightModels];
+    ::SurvSwap.ConLog("Checking for missing survivor models in precache...");
     for (local i = 0; i < ModelSet.len(); i++)
     {
       foreach (Name, Value in ModelSet[i])
       {
         if (!IsModelPrecached(Value.Model))
         {
-          SurvSwap.ConLog(Value.Name + " is not precached! Caching...");
+          ::SurvSwap.ConLog(Value.Name + " is not precached! Caching...");
           PrecacheModel(Value.Model);
         }
       }
     }
+    ::SurvSwap.ConLog("All survivor models are precached!");
     Initialized();
   }
 
   Initialized = function()
   {
-    SurvSwap.ConLog("Survivor Swap has been initialized.");
+    ::SurvSwap.ConLog("Survivor Swap has been initialized.");
   }
 }
 

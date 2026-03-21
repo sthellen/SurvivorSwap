@@ -1,1 +1,2 @@
+IncludeScript("SurvSwapDB");
 IncludeScript("SurvivorSwap");
