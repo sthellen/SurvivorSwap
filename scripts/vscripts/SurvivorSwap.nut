@@ -1,6 +1,6 @@
 // =========================================================================
 // Survivor Swap
-// Version: 2026.03.20_2312
+// Version: 2026.03.21_0019
 // Author: St. Hellen
 //
 // This is free and unencumbered software released into the public domain.
@@ -41,28 +41,15 @@ SurvSwap.Func <-
   // Used in isBot() func.
   PlayerCache = {}
 
-  OnGameEvent_player_connect = function(params)
-  {
-    if (params.userid == null) return;
-
-    local UserID = params.userid;
-    local NetID = params.networkid;
-
-    if (Player in PlayerCache)
-    {
-      delete PlayerCache[UserID];
-    }
-
-    PlayerCache[UserID] <- {};
-    PlayerCache[UserID]["NetID"] <- NetID;
-  }
-  
   OnGameEvent_player_first_spawn = function(params)
   {
     if (params.userid == null) return;
 
     local Player = GetPlayerFromUserID(params.userid);
     local CurrentModel = Player.GetModelName();
+
+    local UserID = params.userid;
+    local NetID = Player.GetNetworkIDString();
 
     SetSurvivorContext(Player, CurrentModel);
   }
@@ -74,15 +61,22 @@ SurvSwap.Func <-
     local Player = GetPlayerFromUserID(params.player);
     local CurrentModel = Player.GetModelName();
 
+    local UserID = params.userid;
+    local NetID = Player.GetNetworkIDString();
+
     SetSurvivorContext(Player, CurrentModel);
   }
 
   OnGameEvent_player_say = function(params)
   {
-    local UserID = params.userid;
+    if (params.userid == null) return;
+
     local Player = GetPlayerFromUserID(params.userid);
+    local UserID = params.userid;
+    local NetID = Player.GetNetworkIDString();
+    CachePlayer(UserID, NetID);
     local UserInput = params.text.tolower();
-    if (Player == null || !Player.IsSurvivor() || IsBot(UserID) || UserInput[0] != '!') return;
+    if (UserInput[0] != '!' || Player == null || !Player.IsSurvivor() || IsBot(UserID)) return;
 
     local Token = split(strip(UserInput.slice(1)), " ");
     local Character = Token[0];
@@ -109,13 +103,13 @@ SurvSwap.Func <-
   FindSayTarget = function(SayTarget, Issuer, Character)
   {
     SayTarget = Survivors[SayTarget];
-    const SurvSet = Director.GetSurvivorSet();
+    local SurvSet = Director.GetSurvivorSet();
     SayTarget = GetPlayerFromCharacter(SayTarget.Index[SurvSet == 1 ? 1 : 0]);
     local UserID = SayTarget.GetPlayerUserId();
     if (!IsBot(UserID))
     {
       Character = Survivors[Character];
-      const InfoString = "Enter just \"!" + Character.Name.tolower() + "\" to change yourself.";
+      local InfoString = "Enter just \"!" + Character.Name.tolower() + "\" to change yourself.";
       ClientPrint(Issuer, 5, "Only bots can be targets!");
       ClientPrint(Issuer, 5, InfoString);
       ::SurvSwap.ConLog("Swap failed: Only bots can be targets! " + InfoString);
@@ -127,11 +121,19 @@ SurvSwap.Func <-
   SwapSurvivor = function(Player, Character)
   {
     if (Player == null || Character == null) return;
-
+    local CurrentModel = Player.GetModelName();
     Character = Survivors[Character];
+    if (CurrentModel == Character.Model)
+    {
+      local InfoString = "Target is already " + Character.Name + ".";
+      ClientPrint(Player, 5, InfoString);
+      ::SurvSwap.ConLog("Swap failed: " + InfoString);
+      return;
+    }
+
     Player.SetModel(Character.Model);
 
-    const SurvSet = Director.GetSurvivorSet();
+    local SurvSet = Director.GetSurvivorSet();
     NetProps.SetPropIntArray(Player, "m_survivorCharacter", Character.Index[SurvSet == 1 ? 1 : 0], 0);
 
     Player.SetContext("who", Character.Context, -1);
@@ -163,6 +165,17 @@ SurvSwap.Func <-
     }
   }
 
+  CachePlayer = function(UserID, NetID)
+  {
+    if (Player in PlayerCache)
+    {
+      delete PlayerCache[UserID];
+    }
+
+    PlayerCache[UserID] <- {};
+    PlayerCache[UserID]["NetID"] <- NetID;
+  }
+
   IsBot = function(UserID)
   {
     return PlayerCache[UserID]["NetID"] == "BOT" ? true : false;
@@ -170,7 +183,7 @@ SurvSwap.Func <-
 
   CheckPrecache = function()
   {
-    const ModelSet = [Survivors, LightModels];
+    local ModelSet = [Survivors, LightModels];
     ::SurvSwap.ConLog("Checking for missing survivor models in precache...");
     for (local i = 0; i < ModelSet.len(); i++)
     {
