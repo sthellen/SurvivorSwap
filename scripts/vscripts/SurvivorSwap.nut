@@ -69,14 +69,14 @@ SurvSwap.Func <-
 
   OnGameEvent_player_say = function(params)
   {
-    if (params.userid == null) return;
+    if (params.userid == null || params.userid == "") return;
 
     local Player = GetPlayerFromUserID(params.userid);
     local UserID = params.userid;
     local NetID = Player.GetNetworkIDString();
     CachePlayer(UserID, NetID);
     local UserInput = params.text.tolower();
-    if (UserInput[0] != '!' || Player == null || !Player.IsSurvivor() || IsBot(UserID)) return;
+    if (UserInput[0] != '!' ||!Player.IsSurvivor() || IsBot(UserID)) return;
 
     local Token = split(strip(UserInput.slice(1)), " ");
     local Character = Token[0];
