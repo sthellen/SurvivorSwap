@@ -142,16 +142,16 @@ SurvSwap.Func <-
 
   SetSurvivorContext = function(Player, CurrentModel)
   {
-    // ? Convert to a map
-    foreach (Name in Survivors)
-    {
-      if (Name.Model == CurrentModel)
+    local SurvSet = Director.GetSurvivorSet();
+    local DisplayName = GetCharacterDisplayName(Player).tolower();
+    local Character = Survivors[DisplayName];
+    if (Character.Model == CurrentModel)
       {
-        Player.SetContext("who", Name.Context, -1);
+      Player.SetContext("who", Character.Context, -1);
         local PlayerName = Player.GetPlayerName();
-        if (PlayerName != Name.Name)
+      if (PlayerName != Character.Name)
         {
-          ::SurvSwap.ConLog(PlayerName + "'s context was automatically set to " + Name.Name + "!");
+        ::SurvSwap.ConLog(PlayerName + "'s context was automatically set to " + Character.Name + "!");
         }
     }
   }
