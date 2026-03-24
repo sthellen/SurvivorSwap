@@ -36,20 +36,12 @@ SurvSwap.Func <-
   Survivors = ::SurvSwap.Survivors
   LightModels = ::SurvSwap.LightModels
 
-  // Empty table to temporarily store a player's network ID.
-  // This is for edge cases where bots are considered human.
-  // Used in isBot() func.
-  PlayerCache = {}
-
   OnGameEvent_player_first_spawn = function(params)
   {
     if (params.userid == null) return;
 
     local Player = GetPlayerFromUserID(params.userid);
     local CurrentModel = Player.GetModelName();
-
-    local UserID = params.userid;
-    local NetID = Player.GetNetworkIDString();
 
     SetSurvivorContext(Player, CurrentModel);
   }
@@ -61,9 +53,6 @@ SurvSwap.Func <-
     local Player = GetPlayerFromUserID(params.player);
     local CurrentModel = Player.GetModelName();
 
-    local UserID = params.userid;
-    local NetID = Player.GetNetworkIDString();
-
     SetSurvivorContext(Player, CurrentModel);
   }
 
@@ -72,9 +61,9 @@ SurvSwap.Func <-
     if (params.userid == null || params.userid == "") return;
 
     local Player = GetPlayerFromUserID(params.userid);
-    local UserID = params.userid;
     local NetID = Player.GetNetworkIDString();
-    CachePlayer(UserID, NetID);
+    if ( !Player.IsSurvivor() || NetID == "BOT" ) return;
+
     local UserInput = params.text.tolower();
     if (UserInput[0] != '!' ||!Player.IsSurvivor() || IsBot(UserID)) return;
 
@@ -105,8 +94,9 @@ SurvSwap.Func <-
     SayTarget = Survivors[SayTarget];
     local SurvSet = Director.GetSurvivorSet();
     SayTarget = GetPlayerFromCharacter(SayTarget.Index[SurvSet == 1 ? 1 : 0]);
-    local UserID = SayTarget.GetPlayerUserId();
-    if (!IsBot(UserID))
+
+    local NetID = SayTarget.GetNetworkIDString();
+    if (NetID != "BOT")
     {
       Character = Survivors[Character];
       local InfoString = "Enter just \"!" + Character.Name.tolower() + "\" to change yourself.";
@@ -140,8 +130,8 @@ SurvSwap.Func <-
     local PlayerName = Player.GetPlayerName();
     SurvSwap.ConLog(PlayerName + "'s character was swapped to " + Character.Name + "!");
 
-    local UserID = Player.GetPlayerUserId();
-    if (IsBot(UserID))
+    local NetID = Player.GetNetworkIDString();
+    if (NetID == "BOT")
     {
       SetFakeClientConVarValue(Player, "name", Character.Name);
     }
@@ -160,25 +150,7 @@ SurvSwap.Func <-
         {
           ::SurvSwap.ConLog(PlayerName + "'s context was automatically set to " + Name.Name + "!");
         }
-        return;
-      }
     }
-  }
-
-  CachePlayer = function(UserID, NetID)
-  {
-    if (Player in PlayerCache)
-    {
-      delete PlayerCache[UserID];
-    }
-
-    PlayerCache[UserID] <- {};
-    PlayerCache[UserID]["NetID"] <- NetID;
-  }
-
-  IsBot = function(UserID)
-  {
-    return PlayerCache[UserID]["NetID"] == "BOT" ? true : false;
   }
 
   CheckPrecache = function()
