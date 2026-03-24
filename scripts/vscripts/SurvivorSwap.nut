@@ -41,6 +41,7 @@ SurvSwap.Func <-
     if (params.userid == null) return;
 
     local Player = GetPlayerFromUserID(params.userid);
+    if ( !Player.IsSurvivor() ) return;
     local CurrentModel = Player.GetModelName();
 
     SetSurvivorContext(Player, CurrentModel);
@@ -51,6 +52,7 @@ SurvSwap.Func <-
     if (params.player == null) return;
 
     local Player = GetPlayerFromUserID(params.player);
+    if ( !Player.IsSurvivor() ) return;
     local CurrentModel = Player.GetModelName();
 
     SetSurvivorContext(Player, CurrentModel);
@@ -65,14 +67,13 @@ SurvSwap.Func <-
     if ( !Player.IsSurvivor() || NetID == "BOT" ) return;
 
     local UserInput = params.text.tolower();
-    if (UserInput[0] != '!' ||!Player.IsSurvivor() || IsBot(UserID)) return;
+    if (UserInput[0] != '!') return;
 
     local Token = split(strip(UserInput.slice(1)), " ");
     local Character = Token[0];
     if ( !(Character in Survivors) ) return;
 
     local SayTarget = null;
-
     if (Token.len() == 2 && Token[1] != null)
     {
       SayTarget = Token[1];
@@ -81,6 +82,7 @@ SurvSwap.Func <-
     if (SayTarget != null && SayTarget in Survivors)
     {
       SayTarget = FindSayTarget(SayTarget, Player, Character);
+      if (SayTarget == null) return;
       SwapSurvivor(SayTarget, Character);
     }
     else
@@ -92,6 +94,7 @@ SurvSwap.Func <-
   FindSayTarget = function(SayTarget, Issuer, Character)
   {
     SayTarget = Survivors[SayTarget];
+    if (SayTarget.Name.tolower() == Character) return;
     local SurvSet = Director.GetSurvivorSet();
     SayTarget = GetPlayerFromCharacter(SayTarget.Index[SurvSet == 1 ? 1 : 0]);
 
@@ -103,7 +106,7 @@ SurvSwap.Func <-
       ClientPrint(Issuer, 5, "Only bots can be targets!");
       ClientPrint(Issuer, 5, InfoString);
       ::SurvSwap.ConLog("Swap failed: Only bots can be targets! " + InfoString);
-      return;
+      return null;
     }
     return SayTarget;
   }
