@@ -172,7 +172,6 @@ SurvSwap.Func <-
       }
     }
     ::SurvSwap.ConLog("All survivor models are precached!");
-    Initialized();
   }
 
   Initialized = function()
@@ -182,5 +181,6 @@ SurvSwap.Func <-
 }
 
 SurvSwap.Func.CheckPrecache();
+SurvSwap.Func.Initialized();
 
 __CollectEventCallbacks(SurvSwap.Func, "OnGameEvent_", "GameEventCallbacks", RegisterScriptGameEventListener);
