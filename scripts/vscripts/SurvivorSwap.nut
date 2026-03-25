@@ -151,12 +151,12 @@ SurvSwap.Func <-
     local Character = Survivors[DisplayName];
     local ModelMatch = Character.Model == CurrentModel;
     ModelMatch = ModelMatch ? 0 : 1;
-    Player.SetContext("who", Character.Context[ModelMatch], -1);
     local NetID = Player.GetNetworkIDString();
     if (NetID == "BOT")
     {
       SetFakeClientConVarValue(Player, "name", Character.Name[ModelMatch]);
     }
+    Player.SetContext("who", Character.Context[ModelMatch], -1);
   }
 
   CheckPrecache = function()
