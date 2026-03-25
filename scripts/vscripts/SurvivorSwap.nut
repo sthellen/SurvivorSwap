@@ -35,26 +35,32 @@ SurvSwap.Func <-
 {
   Survivors = ::SurvSwap.Survivors
   LightModels = ::SurvSwap.LightModels
+  ConLog = ::SurvSwap.ConLog
 
   OnGameEvent_player_first_spawn = function(params)
   {
-    if (params.userid == null) return;
-
+    if (params.userid == null || params.userid == "") return;
     local Player = GetPlayerFromUserID(params.userid);
     if ( !Player.IsSurvivor() ) return;
     local CurrentModel = Player.GetModelName();
+    SetSurvivorContext(Player, CurrentModel);
+  }
 
+  OnGameEvent_player_entered_checkpoint = function(params)
+  {
+    if (params.userid == null || params.userid == "") return;
+    local Player = GetPlayerFromUserID(params.userid);
+    if ( !Player.IsSurvivor() ) return;
+    local CurrentModel = Player.GetModelName();
     SetSurvivorContext(Player, CurrentModel);
   }
 
   OnGameEvent_bot_player_replace = function(params)
   {
-    if (params.player == null) return;
-
+    if (params.player == null || params.player == "") return;
     local Player = GetPlayerFromUserID(params.player);
     if ( !Player.IsSurvivor() ) return;
     local CurrentModel = Player.GetModelName();
-
     SetSurvivorContext(Player, CurrentModel);
   }
 
@@ -94,18 +100,19 @@ SurvSwap.Func <-
   FindSayTarget = function(SayTarget, Issuer, Character)
   {
     SayTarget = Survivors[SayTarget];
-    if (SayTarget.Name.tolower() == Character) return;
     local SurvSet = Director.GetSurvivorSet();
-    SayTarget = GetPlayerFromCharacter(SayTarget.Index[SurvSet == 1 ? 1 : 0]);
+    SurvSet = SurvSet ^ 1 ? 0 : 1;
+    if (SayTarget.Name[0].tolower() == Character) return;
+    SayTarget = GetPlayerFromCharacter(SayTarget.Index[SurvSet]);
 
     local NetID = SayTarget.GetNetworkIDString();
     if (NetID != "BOT")
     {
       Character = Survivors[Character];
-      local InfoString = "Enter just \"!" + Character.Name.tolower() + "\" to change yourself.";
+      local InfoString = "Enter just \"!" + Character.Name[SurvSet].tolower() + "\" to change yourself.";
       ClientPrint(Issuer, 5, "Only bots can be targets!");
       ClientPrint(Issuer, 5, InfoString);
-      ::SurvSwap.ConLog("Swap failed: Only bots can be targets! " + InfoString);
+      ConLog("Swap failed: Only bots can be targets! " + InfoString);
       return null;
     }
     return SayTarget;
@@ -115,68 +122,64 @@ SurvSwap.Func <-
   {
     if (Player == null || Character == null) return;
     local CurrentModel = Player.GetModelName();
+    local SurvSet = Director.GetSurvivorSet();
+    SurvSet = SurvSet ^ 1 ? 0 : 1;
     Character = Survivors[Character];
     if (CurrentModel == Character.Model)
     {
-      local InfoString = "Target is already " + Character.Name + ".";
+      local InfoString = "Target is already " + Character.Name[SurvSet] + ".";
       ClientPrint(Player, 5, InfoString);
-      ::SurvSwap.ConLog("Swap failed: " + InfoString);
+      ConLog("Swap failed: " + InfoString);
       return;
     }
 
     Player.SetModel(Character.Model);
 
     local SurvSet = Director.GetSurvivorSet();
-    NetProps.SetPropIntArray(Player, "m_survivorCharacter", Character.Index[SurvSet == 1 ? 1 : 0], 0);
+    SurvSet = SurvSet ^ 1 ? 0 : 1;
+    NetProps.SetPropIntArray(Player, "m_survivorCharacter", Character.Index[SurvSet], 0);
 
-    Player.SetContext("who", Character.Context, -1);
+    SetSurvivorContext(Player, Character.Model);
     local PlayerName = Player.GetPlayerName();
-    SurvSwap.ConLog(PlayerName + "'s character was swapped to " + Character.Name + "!");
-
-    local NetID = Player.GetNetworkIDString();
-    if (NetID == "BOT")
-    {
-      SetFakeClientConVarValue(Player, "name", Character.Name);
-    }
+    ConLog(PlayerName + "'s character was swapped to " + Character.Name[0] + "!");
   }
 
   SetSurvivorContext = function(Player, CurrentModel)
   {
-    local SurvSet = Director.GetSurvivorSet();
+    if (!Player.IsSurvivor()) return;
     local DisplayName = GetCharacterDisplayName(Player).tolower();
     local Character = Survivors[DisplayName];
-    if (Character.Model == CurrentModel)
-      {
-      Player.SetContext("who", Character.Context, -1);
-        local PlayerName = Player.GetPlayerName();
-      if (PlayerName != Character.Name)
-        {
-        ::SurvSwap.ConLog(PlayerName + "'s context was automatically set to " + Character.Name + "!");
-        }
+    local ModelMatch = Character.Model == CurrentModel;
+    ModelMatch = ModelMatch ? 0 : 1;
+    Player.SetContext("who", Character.Context[ModelMatch], -1);
+    local NetID = Player.GetNetworkIDString();
+    if (NetID == "BOT")
+    {
+      SetFakeClientConVarValue(Player, "name", Character.Name[ModelMatch]);
     }
   }
 
   CheckPrecache = function()
   {
     local ModelSet = [Survivors, LightModels];
-    ::SurvSwap.ConLog("Checking for missing survivor models in precache...");
+    ConLog("Checking for missing survivor models in precache...");
     for (local i = 0; i < ModelSet.len(); i++)
     {
       foreach (Name, Value in ModelSet[i])
       {
         if (!IsModelPrecached(Value.Model))
         {
-          ::SurvSwap.ConLog(Value.Name + " is not precached! Caching...");
+          ConLog( (typeof Value.Name == "string" ? Value.Name : Value.Name[0]) + " is not precached! Caching..." );
           PrecacheModel(Value.Model);
         }
       }
     }
-    ::SurvSwap.ConLog("All survivor models are precached!");
+    ConLog("All survivor models are precached!");
   }
 
   Initialized = function()
   {
-    ::SurvSwap.ConLog("Survivor Swap has been initialized.");
+    ConLog("Survivor Swap has been initialized.");
   }
 }
 
