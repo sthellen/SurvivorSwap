@@ -1,3 +1,4 @@
+//#region
 // =========================================================================
 // Survivor Swap
 // Version: 2026.03.21_0019
@@ -28,6 +29,7 @@
 //
 // For more information, please refer to <https://unlicense.org>
 // =========================================================================
+//#endregion
 
 IncludeScript("SurvSwapDB");
 
@@ -39,38 +41,43 @@ SurvSwap.Func <-
 
   OnGameEvent_player_first_spawn = function(params)
   {
-    if (params.userid == null || params.userid == "") return;
+    if ( !IsValid(params.userid) ) return;
     local Player = GetPlayerFromUserID(params.userid);
-    if ( !Player.IsSurvivor() ) return;
+    local CurrentModel = Player.GetModelName();
+    SetSurvivorContext(Player, CurrentModel);
+  }
+
+  OnGameEvent_player_transitioned = function(params)
+  {
+    if ( !IsValid(params.userid) ) return;
+    local Player = GetPlayerFromUserID(params.userid);
     local CurrentModel = Player.GetModelName();
     SetSurvivorContext(Player, CurrentModel);
   }
 
   OnGameEvent_player_entered_checkpoint = function(params)
   {
-    if (params.userid == null || params.userid == "") return;
+    if ( !Director.IsSessionStartMap() || !IsValid(params.userid) ) return;
     local Player = GetPlayerFromUserID(params.userid);
-    if ( !Player.IsSurvivor() ) return;
     local CurrentModel = Player.GetModelName();
     SetSurvivorContext(Player, CurrentModel);
   }
 
   OnGameEvent_bot_player_replace = function(params)
   {
-    if (params.player == null || params.player == "") return;
+    if ( !IsValid(params.player) ) return;
     local Player = GetPlayerFromUserID(params.player);
-    if ( !Player.IsSurvivor() ) return;
     local CurrentModel = Player.GetModelName();
     SetSurvivorContext(Player, CurrentModel);
   }
 
   OnGameEvent_player_say = function(params)
   {
-    if (params.userid == null || params.userid == "") return;
+    if ( !IsValid(params.userid) ) return;
 
     local Player = GetPlayerFromUserID(params.userid);
     local NetID = Player.GetNetworkIDString();
-    if ( !Player.IsSurvivor() || NetID == "BOT" ) return;
+    if (NetID == "BOT") return;
 
     local UserInput = params.text.tolower();
     if (UserInput[0] != '!') return;
@@ -157,6 +164,14 @@ SurvSwap.Func <-
       SetFakeClientConVarValue(Player, "name", Character.Name[ModelMatch]);
     }
     Player.SetContext("who", Character.Context[ModelMatch], -1);
+  }
+
+  IsValid = function(User)
+  {
+    if (User == null || User == "") return false;
+    local Player = GetPlayerFromUserID(User);
+    if ( !Player.IsSurvivor() ) return false;
+    return true;
   }
 
   CheckPrecache = function()
