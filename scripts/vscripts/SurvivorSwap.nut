@@ -55,7 +55,7 @@ SurvSwap.Func <-
     SetSurvivorContext(Player, CurrentModel);
   }
 
-  OnGameEvent_player_entered_checkpoint = function(params)
+  OnGameEvent_player_transitioned = function(params)
   {
     if ( !Director.IsSessionStartMap() || !IsValid(params.userid) ) return;
     local Player = GetPlayerFromUserID(params.userid);
