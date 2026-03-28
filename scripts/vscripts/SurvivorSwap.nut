@@ -111,6 +111,12 @@ SurvSwap.Func <-
     SurvSet = SurvSet ^ 1 ? 0 : 1;
     if (SayTarget.Name[0].tolower() == Character) return;
     SayTarget = GetPlayerFromCharacter(SayTarget.Index[SurvSet]);
+    if (SayTarget == null)
+    {
+      ClientPrint(Issuer, 5, "Target does not exist!");
+      ClientPrint(Issuer, 5, "Syntax: ![desired survivor] [target]");
+      return;
+    }
 
     local NetID = SayTarget.GetNetworkIDString();
     if (NetID != "BOT")
